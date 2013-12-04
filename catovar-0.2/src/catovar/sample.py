@@ -30,19 +30,31 @@ class Sample(object):
                 multianno_dr = csv.DictReader(multianno_file)
                 self.anno_fn = multianno_dr.fieldnames
                 
-                for v in multianno_dr:
-                    v["Chr"] = v["Chr"].lstrip("chr")
+                for variant in multianno_dr:
+                    variant["Chr"] = variant["Chr"].lstrip("chr")
                     
-                    if "Otherinfo" in v.keys():
-                        other_info = v["Otherinfo"].split('\t')
-                        v["Otherinfo"] = dict(zip(other_info[-2].split(":"), \
+                    if "Otherinfo" in variant.keys():
+                        other_info = variant["Otherinfo"].split('\t')
+                        vcf_format = dict(zip(other_info[-2].split(":"), \
                         other_info[-1].split(":")))
+                        variant["VCFformat"] = vcf_format
+                        vcf_info_list = other_info[-3].split(";")
+                        vcf_info = {}
+                        for e in vcf_info_list:
+                            try:
+                                e = e.split("=")
+                                k = e[0]
+                                v = e[1]
+                                vcf_info[k] = v
+                            except IndexError:
+                                continue
+                        variant["VCFinfo"] = vcf_info
                     
                     key = []
                     for fn in self.anno_fn[0:5]:
-                        key.append(v[fn])
+                        key.append(variant[fn])
                     key = tuple(key)
-                    self.anno[key] = v
+                    self.anno[key] = variant
                     self.variants.append(key)
         except IOError:
             print "Invalid multianno file: " + multianno_file

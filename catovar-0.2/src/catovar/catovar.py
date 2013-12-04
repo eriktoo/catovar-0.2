@@ -9,55 +9,52 @@ import sample
 import csv
 import sys
 
-if len(sys.argv) != 2:
-    print "A .csv file containing at minimum 'filename' and 'id' fields is required."
+if len(sys.argv) != 3:
+    print "Usage: catovar input_file output_file"
+    print "Input file must be CSV format containing at minimum a filename field"
     print "Exiting."
     sys.exit(1)
-    
+
+
+in_file = sys.argv[1]
+out_file = sys.argv[2]
 samples = []
     
-with open(sys.argv[1], 'rb') as info_file:
+with open(in_file, 'rb') as info_file:
             
     info_dr = csv.DictReader(info_file)
     info_fn = info_dr.fieldnames
     
     for line in info_dr:    
         samples.append(sample.Sample(line, info_fn))
-    
-header = []
+
+vcf_format_fn = ['GT', 'GQ', 'FDP', 'FRO', 'FAO']
+vcf_info_fn = ['FREQ', 'BIAS']
+anno_fn = samples[0].get_anno_fn()[:-1] # Leave out "Otherinfo"
+header = info_fn + anno_fn[0:5] + vcf_format_fn + vcf_info_fn + anno_fn[5:]
 data = []
 
 for sample in samples:
     
     info = [sample.get_info()[fn] for fn in info_fn]
-    header.extend(info_fn)
     
     for variant in sample.get_variants():
-        anno_fn = sample.get_anno_fn()
-        anno_d = sample.get_anno(variant)
-        anno_l = info + [anno_d[fn] for fn in anno_fn[:-1]]
+        anno = sample.get_anno(variant)
+        vcf_format = anno['VCFformat']
+        vcf_info = anno['VCFinfo']
         
-        vcf_fn = ['GT', 'GQ', 'FDP', 'FRO', 'FAO']
-        vcf_d = anno_d['Otherinfo']
-        vcf_l = [vcf_d[fn] for fn in vcf_fn]
-        
-        fao = sum(int(n) for n in vcf_d['FAO'].split(","))
+        fao = sum(int(n) for n in vcf_format['FAO'].split(","))
         try:
-            freq = str(fao/float(vcf_d['FDP']))
-            vcf_l.append(freq)
+            freq = str(fao/float(vcf_format['FDP']))
         except ZeroDivisionError:
-            vcf_l.append("NA")
-            
-        fsaf = sum(int(n) for n in vcf_d['FSAF'].split(","))
-        fsar = sum(int(n) for n in vcf_d['FSAR'].split(","))
-        fsrf = float(vcf_d['FSRF'])
-        fsrr = float(vcf_d['FSRR'])
-        try:
-            bias = str( (fsaf/(fsaf + fsrf)) / (fsar/(fsar + fsrr)) )
-            vcf_l.append(bias)
-        except ZeroDivisionError:
-            vcf_l.append("NA")
-            
-        vcf_fn.extend(['FREQ', 'BIAS'])
+            freq = "NA"
         
-        print freq
+        v_data = info + [anno[fn] for fn in anno_fn[0:5]] + [vcf_format[fn] for fn in vcf_format_fn] + [freq] + [vcf_info["STB"]] + [anno[fn] for fn in anno_fn[5:]]
+        
+        data.append(v_data)
+
+with open(out_file, 'wb') as out_csv:
+    writer = csv.writer(out_csv, dialect='excel')
+    writer.writerow(header)
+    for row in data:
+        writer.writerow(row)
