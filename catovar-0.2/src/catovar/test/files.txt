@@ -1,0 +1,6 @@
+filename
+TSVC_variants_IonXpress_001.avin.hg19_multianno.csv
+TSVC_variants_IonXpress_002.avin.hg19_multianno.csv
+TSVC_variants_IonXpress_003.avin.hg19_multianno.csv
+TSVC_variants_IonXpress_004.avin.hg19_multianno.csv
+TSVC_variants_IonXpress_005.avin.hg19_multianno.csv
